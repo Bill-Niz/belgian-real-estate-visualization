@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Belgian Real‑Estate Agents Visualisation</title>
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    #map {
+      height: 500px;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Belgian Real‑Estate Agents Visualisation</h1>
+  <p>This interactive page displays a curated dataset of major Belgian real‑estate agencies. You can sort and search the table, explore the bar chart of their latest profits, and view their locations on a map. Lines connect each agency to Brussels as a visual reference.</p>
+  <table id="agentsTable" class="display" style="width:100%">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Address</th>
+        <th>Social media</th>
+        <th>Email</th>
+        <th>Zip</th>
+        <th>Locality</th>
+        <th>Size</th>
+        <th>TVA number</th>
+        <th>Profit (€)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <canvas id="barChart" width="800" height="400"></canvas>
+  <div id="map"></div>
+
+  <!-- Dependencies -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+  // Data embedded as an array of objects
+  const agents = [
+    {
+      name: 'Century 21 Benelux SA',
+      address: 'Drève Richelle 161B bte 10, 1410 Waterloo, Belgium',
+      social: 'Facebook; Instagram; X; LinkedIn',
+      email: 'info@century21.be',
+      zip: '1410',
+      locality: 'Waterloo',
+      size: '11-50 employees (approx 7.2 FTE)',
+      tva: 'BE0451724941',
+      profit: 11984,
+      lat: 50.7219,
+      lon: 4.3997
+    },
+    {
+      name: 'Allten SA',
+      address: 'Avenue Louise 162 b8, 1050 Brussels, Belgium',
+      social: 'LinkedIn; Facebook; Instagram',
+      email: 'info@allten.be',
+      zip: '1050',
+      locality: 'Brussels',
+      size: '7.4 FTE',
+      tva: 'BE0837923810',
+      profit: 381643,
+      lat: 50.8333,
+      lon: 4.3667
+    },
+    {
+      name: 'Trevi Brussels SA',
+      address: 'Rue Vilain XIIII 53-55, 1000 Brussels, Belgium',
+      social: 'LinkedIn; Facebook; Instagram (general Trevi)',
+      email: 'info@trevi.be',
+      zip: '1000',
+      locality: 'Brussels',
+      size: '13 FTE',
+      tva: 'BE0420418982',
+      profit: -700774,
+      lat: 50.8466,
+      lon: 4.3528
+    },
+    {
+      name: 'Structura Business Property',
+      address: 'Romeinsesteenweg 566, 1853 Strombeek-Bever, Belgium',
+      social: 'LinkedIn',
+      email: 'office@structura.biz',
+      zip: '1853',
+      locality: 'Strombeek-Bever',
+      size: '15.9 employees (approx)',
+      tva: 'BE0471978244',
+      profit: 76178.61,
+      lat: 50.9050,
+      lon: 4.3681
+    },
+    {
+      name: 'EV MMC Belgium SRL (Engel & Völkers)',
+      address: 'Chaussée de Waterloo 1173, 1180 Brussels, Belgium',
+      social: 'Instagram; Facebook; LinkedIn; YouTube',
+      email: 'belgium@engelvoelkers.com',
+      zip: '1180',
+      locality: 'Brussels (Uccle)',
+      size: '0 FTE (company created late 2023)',
+      tva: 'BE1004032746',
+      profit: null,
+      lat: 50.7997,
+      lon: 4.3476
+    },
+    {
+      name: 'Aximas SRL',
+      address: 'Drukpersstraat 4, 1000 Brussels, Belgium',
+      social: 'LinkedIn',
+      email: 'info@aximas.com',
+      zip: '1000',
+      locality: 'Brussels',
+      size: '0 FTE (micro)',
+      tva: 'BE0445345014',
+      profit: 9137,
+      lat: 50.8466,
+      lon: 4.3528
+    },
+    {
+      name: 'Belgium SR SA (Sotheby’s International Realty)',
+      address: 'Avenue Louise 251, 1050 Brussels, Belgium',
+      social: 'Instagram; Facebook; LinkedIn; Pinterest; YouTube',
+      email: 'contact@sothebysrealty.be',
+      zip: '1050',
+      locality: 'Brussels',
+      size: '4.6 FTE',
+      tva: 'BE0537736425',
+      profit: -245086,
+      lat: 50.8333,
+      lon: 4.3667
+    },
+    {
+      name: 'Barnes Brussels (Senrab SRL)',
+      address: 'Avenue Louise 404A, 1050 Brussels, Belgium',
+      social: 'Facebook; LinkedIn; Pinterest; YouTube; Instagram',
+      email: 'brussels@barnes-international.com',
+      zip: '1050',
+      locality: 'Brussels',
+      size: '1.7 FTE',
+      tva: 'BE0554963922',
+      profit: 713,
+      lat: 50.8333,
+      lon: 4.3667
+    },
+    {
+      name: 'ERA Belgium (ERA HQ)',
+      address: 'Grote Markt 6a, 9100 Sint-Niklaas, Belgium',
+      social: 'Facebook; LinkedIn; Instagram; YouTube',
+      email: 'info@era.be',
+      zip: '9100',
+      locality: 'Sint-Niklaas',
+      size: '10.2 FTE',
+      tva: 'BE0454106983',
+      profit: 1047448,
+      lat: 51.1642,
+      lon: 4.1439
+    }
+  ];
+
+  $(document).ready(function() {
+    // Populate table
+    const tbody = $('#agentsTable tbody');
+    agents.forEach(agent => {
+      const row = $('<tr>');
+      row.append($('<td>').text(agent.name));
+      row.append($('<td>').text(agent.address));
+      row.append($('<td>').text(agent.social));
+      row.append($('<td>').text(agent.email));
+      row.append($('<td>').text(agent.zip));
+      row.append($('<td>').text(agent.locality));
+      row.append($('<td>').text(agent.size));
+      row.append($('<td>').text(agent.tva));
+      row.append($('<td>').text(agent.profit !== null ? agent.profit.toLocaleString('en-US') : 'N/A'));
+      tbody.append(row);
+    });
+    $('#agentsTable').DataTable();
+
+    // Bar chart of profits
+    const ctx = document.getElementById('barChart').getContext('2d');
+    const chartData = {
+      labels: agents.map(a => a.name),
+      datasets: [{
+        label: 'Profit (€)',
+        data: agents.map(a => a.profit || 0),
+        backgroundColor: 'rgba(54, 162, 235, 0.6)'
+      }]
+    };
+    const chartOptions = {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Profit (€)'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Company'
+          },
+          ticks: {
+            autoSkip: false,
+            maxRotation: 60,
+            minRotation: 45
+          }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: 'Latest Profit After Tax by Company'
+        }
+      }
+    };
+    new Chart(ctx, {
+      type: 'bar',
+      data: chartData,
+      options: chartOptions
+    });
+
+    // Leaflet map with markers and connectors
+    const map = L.map('map').setView([50.8466, 4.3528], 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    const brussels = [50.8466, 4.3528];
+    agents.forEach(agent => {
+      const marker = L.marker([agent.lat, agent.lon]).addTo(map);
+      marker.bindPopup(`<b>${agent.name}</b><br>${agent.address}`);
+      // connector line
+      L.polyline([brussels, [agent.lat, agent.lon]], {
+        color: 'blue',
+        weight: 1
+      }).addTo(map);
+    });
+  });
+  </script>
+</body>
+</html>
